@@ -1,12 +1,10 @@
 package Lesson5;
 
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
-
-public class Hom{
-    static final int SIZE = 10000000;
+public class Hom {
+    private static final int SIZE = 10000000;
     static final int HALF = SIZE / 2;
 
-    float arr[] = new float[SIZE];
+    private float arr[] = new float[SIZE];
 
     public Hom() {
         for (int i = 0; i < SIZE; i++) {
@@ -16,8 +14,7 @@ public class Hom{
 
     public void Metod1() {
         long a = System.currentTimeMillis();
-        makeArifmetics(arr,SIZE);
-
+        makeCalculations(arr, SIZE, 0);
         System.out.printf("Время выполнения первого метода %d: ", System.currentTimeMillis() - a);
     }
 
@@ -32,32 +29,36 @@ public class Hom{
         System.arraycopy(arr, 0, arr1, 0, HALF);
         System.arraycopy(arr, HALF, arr2, 0, HALF);
 
-        new Thread(new MyThread(arr1)).start();
-        new Thread(new MyThread(arr2)).start();
+        Thread thr1 = new Thread(new MyThread(arr1, 0));
+        Thread thr2 = new Thread(new MyThread(arr2, HALF));
+        thr1.start();
+        thr2.start();
+
+        //Прежде чем загружать обработанные массивы, дадим возможность
+        //исполняющим потокам завершить свою задачу
+        try {
+            thr1.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            thr2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         //объединяем два массива
-        System.arraycopy(arr1,0,arr,0,HALF);
-        System.arraycopy(arr2,0,arr,HALF,HALF);
-        System.out.printf("Время выполнения второго метода %d: ", System.currentTimeMillis() - a);
-    }
-    public static class MyThread implements Runnable{
+        System.arraycopy(arr1, 0, arr, 0, HALF);
+        System.arraycopy(arr2, 0, arr, HALF, HALF);
 
-        float[] array;
-        MyThread(float[] array){
-         this.array = array;
-        }
-
-        @Override
-        public void run(){
-          makeArifmetics(array,HALF);
-         }
+        System.out.printf("\nВремя выполнения второго метода %d: ", System.currentTimeMillis() - a);
     }
 
-    private static void makeArifmetics(float[] array, int size) {
+    static void makeCalculations(float[] array, int size, int delta) {
+
         for (int i = 0; i < size; i++) {
-            array[i] = (float) (array[i] * Math.sin(0.2f + i / 5) * Math.cos(0.2f + i / 5) * Math.cos(0.4f + i / 2));
+            array[i] = (float) (array[i] * Math.sin(0.2f + (i + delta) / 5) * Math.cos(0.2f + (i + delta) / 5) * Math.cos(0.4f + (i + delta) / 2));
         }
+       // System.out.printf("\nПоследняя ячейка массива [%d] содержит: %f", size--, array[size]);
     }
-
-
 }

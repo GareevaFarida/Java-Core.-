@@ -4,8 +4,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Hom h = new Hom();
-        h.Metod1();
-        h.Metod2();
+        Hom h1 = new Hom();
+        h1.Metod1();
+
+        Hom h2 = new Hom();
+        h2.Metod2();
     }
 }
