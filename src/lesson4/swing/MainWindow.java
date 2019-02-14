@@ -1,10 +1,7 @@
-package lesson4;
-
+package lesson4.swing;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
+import java.awt.event.*;
 import java.io.IOException;
 
 public class MainWindow extends JFrame implements MessageSender {
@@ -15,6 +12,7 @@ public class MainWindow extends JFrame implements MessageSender {
     private JList<Message> list;
     private DefaultListModel<Message> listModel;
     private JPanel panel;
+    private JTextField textFieldAdresat;
 
     private Network network;
 
@@ -37,16 +35,18 @@ public class MainWindow extends JFrame implements MessageSender {
         add(scrollPane, BorderLayout.CENTER);
 
         textField = new JTextField();
+        textFieldAdresat = new JTextField("Кому");
         button = new JButton("Send");
         button.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String text = textField.getText();
-                submitMessage("user", text);
+                submitMessage(network.getUsername(), text);//вывод сообщения в UI
                 textField.setText(null);
                 textField.requestFocus();
+                //network.sendMessage(text);
+                network.sendMessage(text,textFieldAdresat.getText());//отправка сообщения через сеть
 
-                network.sendMessage(text);
             }
         });
 
@@ -62,17 +62,34 @@ public class MainWindow extends JFrame implements MessageSender {
         panel.add(button, BorderLayout.EAST);
         panel.add(textField, BorderLayout.CENTER);
 
+        panel.add(textFieldAdresat, BorderLayout.WEST);
+
+
         add(panel, BorderLayout.SOUTH);
 
-        try {
-            network = new Network("localhost", 7777, this);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try {
+                    if (network != null) {
+                        network.close();
+                    }
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                super.windowClosing(e);
+            }
+        });
 
         setVisible(true);
-        textField.requestFocus();
+        LoginDialog loginDialog = new LoginDialog(this);
+        loginDialog.setVisible(true);
+
+        if (!loginDialog.isAuthSuccessful()) {
+            System.exit(0);
+        }
+        network = loginDialog.getNetwork();
+        setTitle("Сетевой чат. Пользователь " + network.getUsername());
     }
 
     @Override

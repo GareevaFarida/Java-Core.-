@@ -1,4 +1,4 @@
-package lesson4;
+package lesson4.swing;
 import java.time.LocalDate;
 
 public class Message {

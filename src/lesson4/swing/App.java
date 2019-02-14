@@ -1,4 +1,5 @@
-package lesson4;
+package lesson4.swing;
+
 import javax.swing.*;
 
 public class App {

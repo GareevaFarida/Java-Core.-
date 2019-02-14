@@ -1,0 +1,71 @@
+package lesson6;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+public class ClientHandler {
+
+    private static final Pattern MESSAGE_PATTERN_FOR_READ = Pattern.compile("^/w (.+) (.+)$");
+    private static final String MESSAGE_PATTERN = "/w %s %s";
+    private final Thread handleThread;
+    private final DataInputStream inp;
+    private final DataOutputStream out;
+    private final ChatServer server;
+    private final String username;
+    private final Socket socket;
+
+    public ClientHandler(String username, Socket socket, ChatServer server) throws IOException {
+        this.username = username;
+        this.socket = socket;
+        this.server = server;
+        this.inp = new DataInputStream(socket.getInputStream());
+        this.out = new DataOutputStream(socket.getOutputStream());
+
+        this.handleThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        String msg = inp.readUTF();
+                        System.out.printf("Message from user %s: %s%n", username, msg);
+                        // TODO реализовать прием сообщений от клиента и пересылку адресату через сервер
+                        //////////////////////
+                        Matcher matcher = MESSAGE_PATTERN_FOR_READ.matcher(msg);
+
+                        if (matcher.matches()) {
+                            String message = matcher.group(1);
+                            String adresat = matcher.group(2);
+                            System.out.println("Адресат: " + adresat);
+                            System.out.println("Сообщение: " + message + " " + username);
+                            //прилепим отправителя по шаблону, чтобы впоследствии можно было расчленить сообщение
+                            message = String.format(MESSAGE_PATTERN, message, username);
+                            server.sendMessage(adresat, message);
+
+                        }
+                        //////////////////////
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.printf("Client %s disconnected%n", username);
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        handleThread.start();
+    }
+
+    public DataOutputStream getOut() {
+        return out;
+    }
+}
