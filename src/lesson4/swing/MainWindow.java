@@ -3,6 +3,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class MainWindow extends JFrame implements MessageSender {
 
@@ -41,10 +43,12 @@ public class MainWindow extends JFrame implements MessageSender {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String text = textField.getText();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
+                String dataFormatted = "["+(LocalDateTime.now()).format(formatter)+"] ";
+                text = dataFormatted+text;
                 submitMessage(network.getUsername(), text);//вывод сообщения в UI
                 textField.setText(null);
                 textField.requestFocus();
-                //network.sendMessage(text);
                 network.sendMessage(text,textFieldAdresat.getText());//отправка сообщения через сеть
 
             }

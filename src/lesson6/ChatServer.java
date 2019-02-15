@@ -9,6 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +20,7 @@ import java.util.regex.Pattern;
 public class ChatServer {
 
     private static final Pattern AUTH_PATTERN = Pattern.compile("^/auth (.+) (.+)$");
+    private static final String MESSAGE_PATTERN = "/w %s %s";
 
     private AuthService authService = new AuthServiceImpl();
 
@@ -50,6 +53,16 @@ public class ChatServer {
                             out.writeUTF("/auth successful");
                             out.flush();
                             System.out.printf("Authorization for user %s successful%n", username);
+
+                            //сообщим всем пользователям о появлении нового клиента online
+                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
+                            String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
+                            for (Map.Entry<String, ClientHandler> pair : clientHandlerMap.entrySet()) {
+                                if (pair.getKey() !=username){
+                                    sendMessage("server",pair.getKey(),dataFormatted+"User "+username+" is online.");
+                                }
+                            }
+
                         } else {
                             System.out.printf("Authorization for user %s failed%n", username);
                             out.writeUTF("/auth fails");
@@ -66,16 +79,25 @@ public class ChatServer {
                     e.printStackTrace();
                 }
             }
-            
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendMessage(String username, String msg) {
+    public void sendMessage(String sender, String adresat, String msg) {
         // TODO реализовать отправку сообщения пользователю с именем username
-        ClientHandler handler = clientHandlerMap.get(username);
-        if (handler==null){
+        //прилепим отправителя по шаблону, чтобы впоследствии можно было расчленить сообщение
+        msg = String.format(MESSAGE_PATTERN, msg, sender);
+
+        ClientHandler handler = clientHandlerMap.get(adresat);
+        if (handler == null) {
+            System.out.printf("User %s is offline", adresat);
+            //информируем отправителя, что адресат offline
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
+            String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
+
+            sendMessage("server", sender, dataFormatted + "User " + adresat + " is offline");
             return;
         }
         try {
@@ -84,5 +106,9 @@ public class ChatServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Map<String, ClientHandler> getClientHandlerMap() {
+        return clientHandlerMap;
     }
 }

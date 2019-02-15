@@ -8,9 +8,9 @@ public class AuthServiceImpl implements AuthService {
     public Map<String, String> users = new HashMap<>();
 
     public AuthServiceImpl() {
-        users.put("ivan", "111");
-        users.put("petr", "222");
-        users.put("julia", "333");
+        users.put("ivan", "123");
+        users.put("petr", "345");
+        users.put("julia", "678");
         users.put("vova", "333");
     }
 

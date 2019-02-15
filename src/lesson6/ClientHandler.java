@@ -4,6 +4,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,7 +15,7 @@ import java.util.regex.Pattern;
 public class ClientHandler {
 
     private static final Pattern MESSAGE_PATTERN_FOR_READ = Pattern.compile("^/w (.+) (.+)$");
-    private static final String MESSAGE_PATTERN = "/w %s %s";
+   // private static final String MESSAGE_PATTERN = "/w %s %s";
     private final Thread handleThread;
     private final DataInputStream inp;
     private final DataOutputStream out;
@@ -42,9 +46,7 @@ public class ClientHandler {
                             String adresat = matcher.group(2);
                             System.out.println("Адресат: " + adresat);
                             System.out.println("Сообщение: " + message + " " + username);
-                            //прилепим отправителя по шаблону, чтобы впоследствии можно было расчленить сообщение
-                            message = String.format(MESSAGE_PATTERN, message, username);
-                            server.sendMessage(adresat, message);
+                            server.sendMessage(username,adresat, message);
 
                         }
                         //////////////////////
@@ -54,6 +56,18 @@ public class ClientHandler {
                     e.printStackTrace();
                 } finally {
                     System.out.printf("Client %s disconnected%n", username);
+                    /////////////////////////////////
+                    //удалим строку из hashMap и разошлем всем сообщения, что пользователь вышел
+                    Map<String, ClientHandler> clientmap = server.getClientHandlerMap();
+                    clientmap.remove(username);
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
+                    String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
+                    for (Map.Entry<String, ClientHandler> pair : clientmap.entrySet()) {
+                        if (pair.getKey() !=username){
+                            server.sendMessage("server",pair.getKey(),dataFormatted+"User "+username+" is disconnected.");
+                        }
+                    }
+                    /////////////////////////////////
                     try {
                         socket.close();
                     } catch (IOException e) {
