@@ -1,4 +1,5 @@
 package lesson4.swing;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -13,8 +14,9 @@ public class MainWindow extends JFrame implements MessageSender {
     private JScrollPane scrollPane;
     private JList<Message> list;
     private DefaultListModel<Message> listModel;
+    private DefaultListModel<String> userlistModel;
+    private JList<String> userList;
     private JPanel panel;
-    private JTextField textFieldAdresat;
 
     private Network network;
 
@@ -29,6 +31,7 @@ public class MainWindow extends JFrame implements MessageSender {
         list = new JList<>(listModel);
         list.setCellRenderer(new MessageCellRenderer());
 
+
         panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.add(list, BorderLayout.SOUTH);
@@ -36,21 +39,25 @@ public class MainWindow extends JFrame implements MessageSender {
         scrollPane = new JScrollPane(panel);
         add(scrollPane, BorderLayout.CENTER);
 
+        userlistModel = new DefaultListModel<>();
+        userList = new JList<>(userlistModel);
+        userList.setPreferredSize(new Dimension(100, 0));
+        add(userList, BorderLayout.WEST);
+
         textField = new JTextField();
-        textFieldAdresat = new JTextField("Кому");
+        //реакция текстового поля на ввод Enter
+        textField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pressButtonSend();
+            }
+        });
+
         button = new JButton("Send");
         button.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String text = textField.getText();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
-                String dataFormatted = "["+(LocalDateTime.now()).format(formatter)+"] ";
-                text = dataFormatted+text;
-                submitMessage(network.getUsername(), text);//вывод сообщения в UI
-                textField.setText(null);
-                textField.requestFocus();
-                network.sendMessage(text,textFieldAdresat.getText());//отправка сообщения через сеть
-
+                pressButtonSend();
             }
         });
 
@@ -65,9 +72,6 @@ public class MainWindow extends JFrame implements MessageSender {
         panel.setLayout(new BorderLayout());
         panel.add(button, BorderLayout.EAST);
         panel.add(textField, BorderLayout.CENTER);
-
-        panel.add(textFieldAdresat, BorderLayout.WEST);
-
 
         add(panel, BorderLayout.SOUTH);
 
@@ -96,6 +100,26 @@ public class MainWindow extends JFrame implements MessageSender {
         setTitle("Сетевой чат. Пользователь " + network.getUsername());
     }
 
+    private void pressButtonSend() {
+        String text = textField.getText();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
+        String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
+        text = dataFormatted + text;
+
+        if (!userList.isSelectionEmpty()) {
+            submitMessage(network.getUsername(), text);//вывод сообщения в UI
+            textField.setText(null);
+            textField.requestFocus();
+            network.sendMessage(text, userList.getSelectedValue());//отправка сообщения через сеть
+        } else {
+            //вывод сообщения о небранном адресате
+            JOptionPane.showMessageDialog(MainWindow.this,
+                    "Не выбран адресат.",
+                    "Сообщение",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
     @Override
     public void submitMessage(String user, String message) {
         if (message == null || message.isEmpty()) {
@@ -104,5 +128,27 @@ public class MainWindow extends JFrame implements MessageSender {
         Message msg = new Message(user, message);
         listModel.add(listModel.size(), msg);
         list.ensureIndexIsVisible(listModel.size() - 1);
+    }
+
+    @Override
+    public void fillUserList(String[] arrUserList){
+        userlistModel.clear();
+        for (String user:arrUserList){
+            userlistModel.add(userlistModel.size(),user);
+        }
+     //   userList.setListData(arrUserList);
+    }
+
+    @Override
+    public void removeUserFromUserList(String username){
+        int index = userlistModel.indexOf(username);
+       if (index!=-1){
+           userlistModel.remove(index);
+       }
+    }
+
+    @Override
+    public void addUserAtUserList(String username){
+        userlistModel.add(userlistModel.size(),username);
     }
 }

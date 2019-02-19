@@ -1,11 +1,14 @@
 package lesson4.swing;
 
+import lesson6.Constants;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 public class LoginDialog extends JDialog {
 
@@ -17,11 +20,12 @@ public class LoginDialog extends JDialog {
     private JButton btnCancel;
 
     private Network network;
+    private boolean connected;
 
     public LoginDialog(Frame parent) {
         super(parent, "Login", true);
-
         network = null;
+        connected = false;
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints cs = new GridBagConstraints();
@@ -64,6 +68,7 @@ public class LoginDialog extends JDialog {
                 try {
                     network = new Network("localhost", 7777, (MessageSender) parent);
                     network.authorize(tfUsername.getText(), String.valueOf(pfPassword.getPassword()));
+                    connected = true;
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(LoginDialog.this,
@@ -81,6 +86,35 @@ public class LoginDialog extends JDialog {
                 dispose();
             }
         });
+
+        /////////////////////////////////////////////////
+        //запустим новый поток, подождем занное время и прервем аутетификацию
+        class WaitingForAuthorization extends Thread {
+                @Override
+                public void run () {
+                    try {
+                        //даем время на авторизацию
+                        sleep(Constants.AUTORIZATION_TIMEOUT);
+                        if (!connected) {
+                            //значит, пользователь не успел аутентифицироваться
+                            System.out.printf("Time for authorization is over.");
+                            JOptionPane.showMessageDialog(LoginDialog.this,
+                                    "Время авторизации вышло.",
+                                    "Авторизация",
+                                    JOptionPane.ERROR_MESSAGE);
+                            LoginDialog.this.dispose();
+                            Thread.currentThread().interrupt();
+
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+        }
+        WaitingForAuthorization waitingForAuthorization = new WaitingForAuthorization();
+        waitingForAuthorization.start();
+
+        //////////////////////////////////////////////////
 
         bp.add(btnCancel);
         btnCancel.addActionListener(new ActionListener() {
@@ -103,6 +137,6 @@ public class LoginDialog extends JDialog {
     }
 
     public boolean isAuthSuccessful() {
-        return network != null;
+        return connected;//network != null;
     }
 }
