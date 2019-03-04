@@ -1,13 +1,16 @@
 package lesson6;
 
+import j3_lesson2.Exceptions.NonuniqueUserRegistrationException;
 import lesson6.auth.AuthService;
 import lesson6.auth.AuthServiceImpl;
+import j3_lesson2.*;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -25,7 +28,7 @@ public class ChatServer {
         chatServer.start(7777);
     }
 
-    public void start(int port) {
+    private void start(int port) {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started!");
             while (true) {
@@ -36,8 +39,8 @@ public class ChatServer {
                 System.out.println("New client connected!");
 
                 try {
-                    String authMessage = inp.readUTF();
-                    Matcher matcher = Constants.AUTH_PATTERN_FOR_READ.matcher(authMessage);
+                    String inputMessage = inp.readUTF();
+                    Matcher matcher = Constants.AUTH_PATTERN_FOR_READ.matcher(inputMessage);
                     if (matcher.matches()) {
                         String username = matcher.group(1);
                         String password = matcher.group(2);
@@ -57,8 +60,35 @@ public class ChatServer {
                             out.flush();
                             socket.close();
                         }
-                    } else {
-                        System.out.printf("Incorrect authorization message %s%n", authMessage);
+                        continue;
+                    }
+
+                    matcher = Constants.REGISTRATION_PATTERN_FOR_READ.matcher(inputMessage);
+                    if (matcher.matches()){
+                        String username = matcher.group(1);
+                        String password = matcher.group(2);
+                        try {
+                            jdbc.RegistrateUser(username,password);
+                            out.writeUTF("/reg successful");
+                            out.flush();
+                            System.out.printf("Registration for user %s successful%n",username);
+
+                            broadcastUserConnected(username);//сообщим всем пользователям о появлении нового клиента online
+                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this);
+                            clientHandlerMap.put(username, newUserClientHandler);
+                            //сообщим новому клиенту список online-пользователей
+                            sendOnlineUsers(newUserClientHandler);
+                        } catch (ClassNotFoundException|SQLException e) {
+                            e.printStackTrace();
+                        } catch (NonuniqueUserRegistrationException e) {
+                            System.out.printf("Registration for user %s failed, user with the same name already exists%n", username);
+                            out.writeUTF("/reg fails");
+                            out.flush();
+                            socket.close();
+                        }
+                    }
+                    else {
+                        System.out.printf("Incorrect authorization/registration message %s%n", inputMessage);
                         out.writeUTF("/auth fails");
                         out.flush();
                         socket.close();
@@ -80,7 +110,7 @@ public class ChatServer {
         }
         String listOnlineUsers = "";
         for (Map.Entry<String, ClientHandler> pair : clientHandlerMap.entrySet()) {
-            if (pair.getKey() != newUserClientHandler.getUsername()) {
+            if (!pair.getKey().equals(newUserClientHandler.getUsername())) {
                 listOnlineUsers = listOnlineUsers + " " + pair.getKey();
             }
         }
@@ -89,7 +119,7 @@ public class ChatServer {
 
     }
 
-    public void sendMessage(String sender, String adresat, String msg) throws IOException {
+    void sendMessage(String sender, String adresat, String msg) throws IOException {
         //прилепим отправителя по шаблону, чтобы впоследствии можно было расчленить сообщение
         msg = String.format(Constants.MESSAGE_PATTERN, msg, sender);
 
@@ -110,7 +140,7 @@ public class ChatServer {
         return clientHandlerMap;
     }
 
-    public void unsubscribeClient(ClientHandler clientHandler) {
+    void unsubscribeClient(ClientHandler clientHandler) {
         String username = clientHandler.getUsername();
         clientHandlerMap.remove(username);
         try {
@@ -120,7 +150,7 @@ public class ChatServer {
         }
     }
 
-    public void broadcastUserConnected(String username) throws IOException {
+    private void broadcastUserConnected(String username) throws IOException {
         // оообщаем о том, что конкретный пользователь подключился
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
         String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
@@ -132,7 +162,7 @@ public class ChatServer {
         }
     }
 
-    public void broadcastUserDisconnected(String username) throws IOException {
+    private void broadcastUserDisconnected(String username) throws IOException {
         // сообщаем о том, что конкретный пользователь отключился
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
         String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";

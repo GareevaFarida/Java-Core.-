@@ -1,5 +1,7 @@
 package lesson4.swing;
 
+import j3_lesson2.Exceptions.NonuniqueUserRegistrationException;
+import j3_lesson2.Exceptions.RegistrationException;
 import lesson6.Constants;
 
 import javax.swing.*;
@@ -22,14 +24,14 @@ public class Network implements Closeable {
 
     private String username;
 
-    public Network(String hostName, int port, MessageSender messageSender) {
+    Network(String hostName, int port, MessageSender messageSender) throws IOException {
         this.hostName = hostName;
         this.port = port;
         this.messageSender = messageSender;
         this.receiver = createReciverThread();
     }
 
-    public Thread createReciverThread() {
+    private Thread createReciverThread() {
 
         return new Thread(new Runnable() {
             @Override
@@ -64,7 +66,6 @@ public class Network implements Closeable {
                                     return;
                                 }
                                 if (isListUsersOnlineMessage(msg)) {
-                                    return;
                                 }
                             }
 
@@ -110,7 +111,7 @@ public class Network implements Closeable {
     }
 
 
-    public void sendMessage(String msg, String adresat) {
+    void sendMessage(String msg, String adresat) {
         msg = String.format(Constants.MESSAGE_PATTERN, msg, adresat);
         try {
             out.writeUTF(msg);
@@ -120,7 +121,7 @@ public class Network implements Closeable {
         }
     }
 
-    public void authorize(String username, String password) throws IOException {
+    void authorize(String username, String password) throws IOException {
         socket = new Socket(hostName, port);
         out = new DataOutputStream(socket.getOutputStream());
         in = new DataInputStream(socket.getInputStream());
@@ -133,6 +134,32 @@ public class Network implements Closeable {
         } else throw new AuthException("");
 
 
+    }
+
+    void registrateUser(String username, String password) throws IOException, NonuniqueUserRegistrationException, RegistrationException {
+        socket = new Socket(hostName, port);
+        out = new DataOutputStream(socket.getOutputStream());
+        in = new DataInputStream(socket.getInputStream());
+        out.writeUTF(String.format(Constants.REGISTRATION_PATTERN, username, password));
+        out.flush();
+        String response = in.readUTF();
+//        if (response.equals("/reg successful")) {
+//            this.username = username;
+//            receiver.start();
+//        } else if (response.equals("/reg fails")) throw new NonuniqueUserRegistrationException(username);
+//        else throw new RegistrationException();
+
+        switch (response) {
+            case "/reg successful":
+                this.username = username;
+                receiver.start();
+                break;
+            case "/reg fails":
+                throw new NonuniqueUserRegistrationException(username);
+            default:
+                throw new RegistrationException();
+
+        }
     }
 
     public String getUsername() {
