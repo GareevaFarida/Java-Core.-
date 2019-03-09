@@ -17,6 +17,7 @@ public final class Constants {
     public static final String USER_OFFLINE_PATTERN = "/offline %s";
     public static final String USERLIST_PATTERN = "/userlist %s";
     public static final Pattern REGISTRATION_PATTERN_FOR_READ = Pattern.compile("^/reg (.+) (.+)$");
+    public static final Pattern NICKNAME_PATTERN_FOR_READ = Pattern.compile("^/nick (.+) (.+)$");
 
     //константы класса ClientHandler
     public static final Pattern MESSAGE_PATTERN_FOR_READ = Pattern.compile("^/w (.+) (.+)$");
@@ -27,5 +28,6 @@ public final class Constants {
     public static final Pattern USER_ONLINE_PATTERN_FOR_READ = Pattern.compile("^/online (.+)$");
     public static final Pattern USER_OFFLINE_PATTERN_FOR_READ = Pattern.compile("^/offline (.+)$");
     public static final String REGISTRATION_PATTERN = "/reg %s %s";
+    public static final String NICKNAME_PATTERN = "/nick %s %s";
 
 }
