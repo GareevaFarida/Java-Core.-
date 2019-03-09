@@ -63,6 +63,18 @@ public class ChatServer {
                         continue;
                     }
 
+                    matcher = Constants.NICKNAME_PATTERN_FOR_READ.matcher(inputMessage);
+                    if (matcher.matches()){
+                        String username = matcher.group(1);
+                        String nickname = matcher.group(2);
+                        try {
+                            jdbc.changeNickname(username,nickname);
+                        }catch (ClassNotFoundException|SQLException e){
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
+
                     matcher = Constants.REGISTRATION_PATTERN_FOR_READ.matcher(inputMessage);
                     if (matcher.matches()){
                         String username = matcher.group(1);
