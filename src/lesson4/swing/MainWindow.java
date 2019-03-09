@@ -1,6 +1,7 @@
 package lesson4.swing;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
@@ -17,7 +18,7 @@ public class MainWindow extends JFrame implements MessageSender {
     private DefaultListModel<String> userlistModel;
     private JList<String> userList;
     private JPanel panel;
-
+    private JMenu mainMenu;
     private Network network;
 
     public MainWindow() {
@@ -30,7 +31,6 @@ public class MainWindow extends JFrame implements MessageSender {
         listModel = new DefaultListModel<>();
         list = new JList<>(listModel);
         list.setCellRenderer(new MessageCellRenderer());
-
 
         panel = new JPanel();
         panel.setLayout(new BorderLayout());
@@ -88,7 +88,37 @@ public class MainWindow extends JFrame implements MessageSender {
                 super.windowClosing(e);
             }
         });
-
+        JFrame thisWindow = this;
+        JMenuBar menuBar = new JMenuBar();
+        mainMenu = new JMenu("Options");
+        JMenuItem changeNickItem = new JMenuItem("Change nickname");
+        mainMenu.add(changeNickItem);
+        changeNickItem.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Нажата кнопка смены ника");
+                JDialog dialogChangeNickname = new NicknameChangeDialog(thisWindow,network);
+                dialogChangeNickname.setVisible(true);
+            }
+        });
+        mainMenu.addSeparator();
+        JMenuItem exitItem = new JMenuItem("Close");
+        mainMenu.add(exitItem);
+        exitItem.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (network != null) {
+                        network.close();
+                    }
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                System.exit(0);
+            }
+        });
+        menuBar.add(mainMenu);
+        setJMenuBar(menuBar);
         setVisible(true);
         LoginDialog loginDialog = new LoginDialog(this);
         loginDialog.setVisible(true);
@@ -112,7 +142,7 @@ public class MainWindow extends JFrame implements MessageSender {
             textField.requestFocus();
             network.sendMessage(text, userList.getSelectedValue());//отправка сообщения через сеть
         } else {
-            //вывод сообщения о небранном адресате
+            //вывод сообщения о невыбранном адресате
             JOptionPane.showMessageDialog(MainWindow.this,
                     "Не выбран адресат.",
                     "Сообщение",
