@@ -143,12 +143,6 @@ public class Network implements Closeable {
         out.writeUTF(String.format(Constants.REGISTRATION_PATTERN, username, password));
         out.flush();
         String response = in.readUTF();
-//        if (response.equals("/reg successful")) {
-//            this.username = username;
-//            receiver.start();
-//        } else if (response.equals("/reg fails")) throw new NonuniqueUserRegistrationException(username);
-//        else throw new RegistrationException();
-
         switch (response) {
             case "/reg successful":
                 this.username = username;
@@ -159,6 +153,17 @@ public class Network implements Closeable {
             default:
                 throw new RegistrationException();
 
+        }
+    }
+
+    void changeNickname(String nickname){
+        try {
+            socket = new Socket(hostName, port);
+            out = new DataOutputStream(socket.getOutputStream());
+            out.writeUTF(String.format(Constants.NICKNAME_PATTERN,username,nickname));
+            out.flush();
+        }catch (IOException e){
+            e.printStackTrace();
         }
     }
 
