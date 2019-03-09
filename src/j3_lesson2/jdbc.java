@@ -7,6 +7,16 @@ import java.sql.*;
 
 public class jdbc {
 
+    public static void changeNickname(String username,String nickname) throws ClassNotFoundException, SQLException{
+        Class.forName("org.sqlite.JDBC");
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:dbChatUsers.db")) {
+            PreparedStatement preparedStatement = connection.prepareStatement("UPDATE Users SET nickname = ? WHERE login = ?");
+            preparedStatement.setString(1,nickname);
+            preparedStatement.setString(2, username);
+            System.out.println("В БД изменено записей: "+preparedStatement.executeUpdate());
+        }
+    }
+
     public static String getPassword(String username) throws ClassNotFoundException, SQLException, AuthException {
         String password;
         Class.forName("org.sqlite.JDBC");
