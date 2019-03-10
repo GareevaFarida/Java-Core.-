@@ -154,12 +154,9 @@ public class MainWindow extends JFrame implements MessageSender {
             int firstLine = Math.max(0,arr.length- Constants.COUNT_ROWS);
             for (int i = firstLine;i<arr.length;i++){
                 String line = (String) arr[i];
-                System.out.println(line);
                 displayMessage(line);
             }
         }catch (FileNotFoundException e){
-            e.printStackTrace();
-        }catch (IOException e){
             e.printStackTrace();
         }finally {
             try {
