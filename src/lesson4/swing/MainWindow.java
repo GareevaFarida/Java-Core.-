@@ -1,10 +1,11 @@
 package lesson4.swing;
 
+import lesson6.Constants;
+
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -20,6 +21,10 @@ public class MainWindow extends JFrame implements MessageSender {
     private JPanel panel;
     private JMenu mainMenu;
     private Network network;
+    private String filePathname;
+    private File historyFile;
+    private BufferedWriter writer;
+    private BufferedReader reader;
 
     public MainWindow() {
         setTitle("Сетевой чат");
@@ -82,6 +87,8 @@ public class MainWindow extends JFrame implements MessageSender {
                     if (network != null) {
                         network.close();
                     }
+                    writer.flush();
+                    writer.close();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
@@ -110,6 +117,8 @@ public class MainWindow extends JFrame implements MessageSender {
                 try {
                     if (network != null) {
                         network.close();
+                        writer.flush();
+                        writer.close();
                     }
                 } catch (IOException e1) {
                     e1.printStackTrace();
@@ -128,6 +137,50 @@ public class MainWindow extends JFrame implements MessageSender {
         }
         network = loginDialog.getNetwork();
         setTitle("Сетевой чат. Пользователь " + network.getUsername());
+        filePathname = "history_"+network.getUsername()+".txt";
+        historyFile = new File(filePathname);
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(historyFile,true)));
+            readHistoryFromFile();
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void readHistoryFromFile() {
+        try {
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(historyFile)));
+            Object[] arr = reader.lines().toArray();
+            int firstLine = Math.max(0,arr.length- Constants.COUNT_ROWS);
+            for (int i = firstLine;i<arr.length;i++){
+                String line = (String) arr[i];
+                System.out.println(line);
+                displayMessage(line);
+            }
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void displayMessage(String line) {
+        if (line==null)return;
+        String[] lines = line.split(Constants.INNER_SEPARATOR);
+        if (lines.length<2)
+            throw new RuntimeException("Неверный формат строки в файле истории "+filePathname);
+        String message = "";
+        for (int i = 1;i<lines.length;i++){
+            message = message+lines[i]+(i==lines.length-1?"":Constants.INNER_SEPARATOR);
+        }
+        submitMessage(lines[0],message,false);
+
     }
 
     private void pressButtonSend() {
@@ -137,7 +190,7 @@ public class MainWindow extends JFrame implements MessageSender {
         text = dataFormatted + text;
 
         if (!userList.isSelectionEmpty()) {
-            submitMessage(network.getUsername(), text);//вывод сообщения в UI
+            submitMessage(network.getUsername(), text,true);//вывод сообщения в UI
             textField.setText(null);
             textField.requestFocus();
             network.sendMessage(text, userList.getSelectedValue());//отправка сообщения через сеть
@@ -151,13 +204,25 @@ public class MainWindow extends JFrame implements MessageSender {
     }
 
     @Override
-    public void submitMessage(String user, String message) {
+    public void submitMessage(String user, String message, boolean toWrite) {
         if (message == null || message.isEmpty()) {
             return;
         }
         Message msg = new Message(user, message);
         listModel.add(listModel.size(), msg);
         list.ensureIndexIsVisible(listModel.size() - 1);
+        if (toWrite)
+            writeMessageToFile(user,message);
+    }
+
+    private void writeMessageToFile(String user, String message) {
+        try{
+            writer.write(user+Constants.INNER_SEPARATOR+message+System.lineSeparator());
+           // writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -166,7 +231,6 @@ public class MainWindow extends JFrame implements MessageSender {
         for (String user:arrUserList){
             userlistModel.add(userlistModel.size(),user);
         }
-     //   userList.setListData(arrUserList);
     }
 
     @Override

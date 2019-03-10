@@ -30,6 +30,7 @@ public class ChatServer {
 
     private void start(int port) {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
+            jdbc jdbc_el = new jdbc();
             System.out.println("Server started!");
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -68,8 +69,8 @@ public class ChatServer {
                         String username = matcher.group(1);
                         String nickname = matcher.group(2);
                         try {
-                            jdbc.changeNickname(username,nickname);
-                        }catch (ClassNotFoundException|SQLException e){
+                            jdbc_el.changeNickname(username,nickname);
+                        }catch (SQLException e){
                             e.printStackTrace();
                         }
                         continue;
@@ -80,7 +81,7 @@ public class ChatServer {
                         String username = matcher.group(1);
                         String password = matcher.group(2);
                         try {
-                            jdbc.RegistrateUser(username,password);
+                            jdbc_el.RegistrateUser(username,password);
                             out.writeUTF("/reg successful");
                             out.flush();
                             System.out.printf("Registration for user %s successful%n",username);

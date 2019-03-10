@@ -57,7 +57,7 @@ public class Network implements Closeable {
                                     userSender = matcher.group(2);
                                 }
                                 System.out.println("New message " + message);
-                                messageSender.submitMessage(userSender, message);//вывод в UI сообщения, прочитанного из входящего потока
+                                messageSender.submitMessage(userSender, message,true);//вывод в UI сообщения, прочитанного из входящего потока
 
                                 if (isUserOnlineMessage(msg)) {
                                     return;
@@ -160,6 +160,7 @@ public class Network implements Closeable {
         try {
             socket = new Socket(hostName, port);
             out = new DataOutputStream(socket.getOutputStream());
+            in = new DataInputStream(socket.getInputStream());
             out.writeUTF(String.format(Constants.NICKNAME_PATTERN,username,nickname));
             out.flush();
         }catch (IOException e){

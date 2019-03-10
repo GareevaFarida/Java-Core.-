@@ -24,7 +24,7 @@ public class AuthServiceImpl implements AuthService {
 //        return pwd != null && pwd.equals(password);
 
         try {
-            String pwd = jdbc.getPassword(username);
+            String pwd = new jdbc().getPassword(username);
             return pwd != null && pwd.equals(password);
         } catch (ClassNotFoundException | SQLException | AuthException e) {
             e.printStackTrace();

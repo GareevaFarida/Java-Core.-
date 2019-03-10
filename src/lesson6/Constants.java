@@ -30,4 +30,7 @@ public final class Constants {
     public static final String REGISTRATION_PATTERN = "/reg %s %s";
     public static final String NICKNAME_PATTERN = "/nick %s %s";
 
+    //константы класса MainWindow
+    public static final int COUNT_ROWS = 100;
+    public static final String INNER_SEPARATOR = ": ";
 }
