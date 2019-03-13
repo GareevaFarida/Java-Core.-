@@ -16,12 +16,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 
 public class ChatServer {
     private AuthService authService = new AuthServiceImpl();
 
     private Map<String, ClientHandler> clientHandlerMap = Collections.synchronizedMap(new HashMap<>());
+
+    private ExecutorService executorService = Executors.newCachedThreadPool();
 
     public static void main(String[] args) {
         ChatServer chatServer = new ChatServer();
@@ -48,7 +53,7 @@ public class ChatServer {
                         if (authService.authUser(username, password)) {
                             //сообщим всем пользователям о появлении нового клиента online
                             broadcastUserConnected(username);
-                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this);
+                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this,executorService);
                             clientHandlerMap.put(username, newUserClientHandler);
                             out.writeUTF("/auth successful");
                             out.flush();
@@ -87,7 +92,7 @@ public class ChatServer {
                             System.out.printf("Registration for user %s successful%n",username);
 
                             broadcastUserConnected(username);//сообщим всем пользователям о появлении нового клиента online
-                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this);
+                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this, executorService);
                             clientHandlerMap.put(username, newUserClientHandler);
                             //сообщим новому клиенту список online-пользователей
                             sendOnlineUsers(newUserClientHandler);

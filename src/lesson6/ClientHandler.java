@@ -4,25 +4,29 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 
 public class ClientHandler {
 
-    private final Thread handleThread;
+   // private final Thread handleThread;
     private final DataInputStream inp;
     private final DataOutputStream out;
     private final ChatServer server;
     private final String username;
     private final Socket socket;
+    private final ExecutorService executorService;
 
-    public ClientHandler(String username, Socket socket, ChatServer server) throws IOException {
+    public ClientHandler(String username, Socket socket, ChatServer server, ExecutorService executorService) throws IOException {
         this.username = username;
         this.socket = socket;
         this.server = server;
         this.inp = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
+        this.executorService = executorService;
 
-        this.handleThread = new Thread (new Runnable() {
+     //   this.handleThread = new Thread (new Runnable() {
+     executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -58,7 +62,7 @@ public class ClientHandler {
                 }
             }
         });
-        handleThread.start();
+      //  handleThread.start();
     }
 
     public String getUsername() {
