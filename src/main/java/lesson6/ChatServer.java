@@ -52,74 +52,15 @@ public class ChatServer {
                 log.info("New client connected!");
                 try {
                     String inputMessage = inp.readUTF();
-                    Matcher matcher = Constants.AUTH_PATTERN_FOR_READ.matcher(inputMessage);
-                    if (matcher.matches()) {
-                        String username = matcher.group(1);
-                        String password = matcher.group(2);
-                        if (authService.authUser(username, password)) {
-                            //сообщим всем пользователям о появлении нового клиента online
-                            broadcastUserConnected(username);
-                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this, executorService);
-                            clientHandlerMap.put(username, newUserClientHandler);
-                            out.writeUTF("/auth successful");
-                            out.flush();
-                            //System.out.printf("Authorization for user %s successful%n", username);
-                            log.info("Authorization for user {} successful", username);
-                            //сообщим новому клиенту список online-пользователей
-                            sendOnlineUsers(newUserClientHandler);
-                        } else {
-                            // System.out.printf("Authorization for user %s failed%n", username);
-                            log.info("Authorization for user {} failed", username);
-                            out.writeUTF("/auth fails");
-                            out.flush();
-                            socket.close();
-                        }
-                        continue;
-                    }
+                    if (checkForAuthMessage(socket, out, inputMessage)) continue;
+                    if (checkForChangeNicknameMessage(jdbc_el, inputMessage)) continue;
+                    if (checkForRegistrationMessage(jdbc_el, socket, out, inputMessage)) continue;
+                    
+                    log.warn("Incorrect authorization/registration message {}%n", inputMessage);
+                    out.writeUTF("/auth fails");
+                    out.flush();
+                    socket.close();
 
-                    matcher = Constants.NICKNAME_PATTERN_FOR_READ.matcher(inputMessage);
-                    if (matcher.matches()) {
-                        String username = matcher.group(1);
-                        String nickname = matcher.group(2);
-                        try {
-                            jdbc_el.changeNickname(username, nickname);
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                        }
-                        continue;
-                    }
-
-                    matcher = Constants.REGISTRATION_PATTERN_FOR_READ.matcher(inputMessage);
-                    if (matcher.matches()) {
-                        String username = matcher.group(1);
-                        String password = matcher.group(2);
-                        try {
-                            jdbc_el.RegistrateUser(username, password);
-                            out.writeUTF("/reg successful");
-                            out.flush();
-                            //System.out.printf("Registration for user %s successful%n", username);
-                            log.info("Registration for user {} successful", username);
-                            broadcastUserConnected(username);//сообщим всем пользователям о появлении нового клиента online
-                            ClientHandler newUserClientHandler = new ClientHandler(username, socket, this, executorService);
-                            clientHandlerMap.put(username, newUserClientHandler);
-                            //сообщим новому клиенту список online-пользователей
-                            sendOnlineUsers(newUserClientHandler);
-                        } catch (ClassNotFoundException | SQLException e) {
-                            e.printStackTrace();
-                        } catch (NonuniqueUserRegistrationException e) {
-                            //System.out.printf("Registration for user %s failed, user with the same name already exists%n", username);
-                            log.warn("Registration for user {} failed, user with the same name already exists", username);
-                            out.writeUTF("/reg fails");
-                            out.flush();
-                            socket.close();
-                        }
-                    } else {
-                        //System.out.printf("Incorrect authorization/registration message %s%n", inputMessage);
-                        log.warn("Incorrect authorization/registration message {}%n", inputMessage);
-                        out.writeUTF("/auth fails");
-                        out.flush();
-                        socket.close();
-                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     log.error("Data reading from input stream has failed", e);
@@ -132,6 +73,83 @@ public class ChatServer {
         } finally {
             executorService.shutdown();
         }
+    }
+
+    private boolean checkForRegistrationMessage(jdbc jdbc_el, Socket socket, DataOutputStream out, String inputMessage) throws IOException {
+        Matcher matcher;
+
+        matcher = Constants.REGISTRATION_PATTERN_FOR_READ.matcher(inputMessage);
+        if (matcher.matches()) {
+            String username = matcher.group(1);
+            String password = matcher.group(2);
+            try {
+                jdbc_el.RegistrateUser(username, password);
+                out.writeUTF("/reg successful");
+                out.flush();
+                //System.out.printf("Registration for user %s successful%n", username);
+                log.info("Registration for user {} successful", username);
+                broadcastUserConnected(username);//сообщим всем пользователям о появлении нового клиента online
+                ClientHandler newUserClientHandler = new ClientHandler(username, socket, this, executorService);
+                clientHandlerMap.put(username, newUserClientHandler);
+                //сообщим новому клиенту список online-пользователей
+                sendOnlineUsers(newUserClientHandler);
+            } catch (ClassNotFoundException | SQLException e) {
+                e.printStackTrace();
+            } catch (NonuniqueUserRegistrationException e) {
+                //System.out.printf("Registration for user %s failed, user with the same name already exists%n", username);
+                log.warn("Registration for user {} failed, user with the same name already exists", username);
+                out.writeUTF("/reg fails");
+                out.flush();
+                socket.close();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean checkForChangeNicknameMessage(jdbc jdbc_el, String inputMessage) {
+        Matcher matcher;
+
+        matcher = Constants.NICKNAME_PATTERN_FOR_READ.matcher(inputMessage);
+        if (matcher.matches()) {
+            String username = matcher.group(1);
+            String nickname = matcher.group(2);
+            try {
+                jdbc_el.changeNickname(username, nickname);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean checkForAuthMessage(Socket socket, DataOutputStream out, String inputMessage) throws IOException {
+        Matcher matcher = Constants.AUTH_PATTERN_FOR_READ.matcher(inputMessage);
+        if (matcher.matches()) {
+            String username = matcher.group(1);
+            String password = matcher.group(2);
+            if (authService.authUser(username, password)) {
+                //сообщим всем пользователям о появлении нового клиента online
+                broadcastUserConnected(username);
+                ClientHandler newUserClientHandler = new ClientHandler(username, socket, this, executorService);
+                clientHandlerMap.put(username, newUserClientHandler);
+                out.writeUTF("/auth successful");
+                out.flush();
+                //System.out.printf("Authorization for user %s successful%n", username);
+                log.info("Authorization for user {} successful", username);
+                //сообщим новому клиенту список online-пользователей
+                sendOnlineUsers(newUserClientHandler);
+            } else {
+                // System.out.printf("Authorization for user %s failed%n", username);
+                log.info("Authorization for user {} failed", username);
+                out.writeUTF("/auth fails");
+                out.flush();
+                socket.close();
+            }
+            return true;
+        }
+        return false;
     }
 
     private void sendOnlineUsers(ClientHandler newUserClientHandler) throws IOException {
@@ -157,7 +175,7 @@ public class ChatServer {
         ClientHandler handler = clientHandlerMap.get(adresat);
         if (handler == null) {
             //System.out.printf("User %s is offline", adresat);
-            log.warn("User {} tried to send message offline-user {}",sender, adresat);
+            log.warn("User {} tried to send message offline-user {}", sender, adresat);
             //информируем отправителя, что адресат offline
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy MM dd HH:mm:ss");
             String dataFormatted = "[" + (LocalDateTime.now()).format(formatter) + "] ";
@@ -166,7 +184,7 @@ public class ChatServer {
             try {
                 handler.sendMessage(msg);
             } catch (IOException e) {
-                log.error("Message '"+msg+"' from user "+sender+" to user "+adresat+" is not send", e);
+                log.error("Message '" + msg + "' from user " + sender + " to user " + adresat + " is not send", e);
                 e.printStackTrace();
             }
         }
@@ -179,7 +197,7 @@ public class ChatServer {
 
     void unsubscribeClient(ClientHandler clientHandler) {
         String username = clientHandler.getUsername();
-        log.info("User {} is disconnected.",username);
+        log.info("User {} is disconnected.", username);
         clientHandlerMap.remove(username);
         broadcastUserDisconnected(username);
     }
@@ -194,7 +212,7 @@ public class ChatServer {
                 pair.getValue().sendMessage(String.format(Constants.USER_ONLINE_PATTERN, username));
                 //сообщение о подключении нового пользователя
                 sendMessage("server", pair.getKey(), dataFormatted + "User " + username + " is online.");
-               // log.info("User {} is online.", username);
+                // log.info("User {} is online.", username);
             }
         } catch (IOException e) {
             log.error("Message about " + username + " connection didn't send", e);
